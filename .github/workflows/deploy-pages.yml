@@ -1,0 +1,67 @@
+name: Deploy demo to GitHub Pages
+
+# Builds the k2pdfopt WASM engine (Docker + Emscripten) and the browser demo,
+# then publishes it to GitHub Pages. Enable Pages → Source: "GitHub Actions".
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      # Switch: if a prebuilt dist/ is committed, skip the slow (~minutes) wasm
+      # rebuild. Otherwise build it from source with Docker + Emscripten.
+      - name: Build WASM engine (or use committed prebuilt)
+        run: |
+          if [ -f dist/k2pdfopt.wasm ] && [ -f dist/k2pdfopt.mjs ]; then
+            echo "Found committed dist/ — skipping wasm build."
+          else
+            bash scripts/fetch-src.sh
+            bash scripts/build.sh        # → dist/k2pdfopt.{mjs,wasm}
+          fi
+
+      - name: Build demo
+        run: npm run build:pages         # → sandbox-dist/ (base "./", repo link injected)
+
+      # Guard: vite's publicDir copy is silent — if the wasm build was skipped or
+      # failed, the demo would deploy without an engine and only break at runtime.
+      - name: Verify engine artifacts are in the build
+        run: |
+          test -f sandbox-dist/k2pdfopt.mjs && test -f sandbox-dist/k2pdfopt.wasm \
+            || { echo "::error::engine wasm missing from sandbox-dist/ — build is broken"; exit 1; }
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sandbox-dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
