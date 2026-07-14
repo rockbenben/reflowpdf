@@ -42,7 +42,7 @@ export async function convertPdf(
   opts: ConvertOptions = {},
   config: ConvertPdfConfig = {},
 ): Promise<Uint8Array> {
-  const { onProgress, ...wire } = opts;
+  const { onProgress, onNotice, ...wire } = opts;
   const moduleUrl = config.moduleUrl ?? "/wasm/k2pdfopt.mjs";
   const worker = (config.createWorker ?? defaultWorker)();
   const id = ++nextId;
@@ -53,6 +53,10 @@ export async function convertPdf(
       if (!msg || msg.id !== id) return;
       if (msg.type === "progress") {
         onProgress?.({ page: msg.page, total: msg.total });
+        return;
+      }
+      if (msg.type === "notice") {
+        onNotice?.(msg.code);
         return;
       }
       cleanup();

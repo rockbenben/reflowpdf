@@ -17,4 +17,8 @@ export default defineConfig({
   define: { __REPO_URL__: JSON.stringify(repoUrl) },
   server: { fs: { allow: [".."] } },
   build: { outDir: "../sandbox-dist", emptyOutDir: true },
+  // The k2pdfopt worker is a module worker (`{ type: "module" }`) and lazily
+  // import()s the hybrid-only pdf.js/pdf-lib code — code-splitting a worker
+  // requires the ES output format (Vite's default "iife" cannot split).
+  worker: { format: "es" },
 });

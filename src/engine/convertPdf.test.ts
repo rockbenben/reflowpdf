@@ -75,4 +75,22 @@ describe("convertPdf", () => {
     );
     expect(seen).toHaveBeenCalledWith({ device: "tablet", columns: 1 });
   });
+
+  it("forwards worker notice messages to onNotice", async () => {
+    const notices: Array<string> = [];
+    const createWorker = () =>
+      makeFakeWorker((job, emit) => {
+        emit({ type: "notice", id: job.id, code: "noTextLayerFallback" });
+        emit({ type: "done", id: job.id, output: PDF.slice().buffer });
+      });
+
+    const out = await convertPdf(
+      PDF,
+      { device: "phone", onNotice: (code) => notices.push(code) },
+      { createWorker },
+    );
+
+    expect(Array.from(out)).toEqual(Array.from(PDF));
+    expect(notices).toEqual(["noTextLayerFallback"]);
+  });
 });

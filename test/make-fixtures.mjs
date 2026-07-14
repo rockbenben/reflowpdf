@@ -41,6 +41,13 @@ const para = (n) =>
     `Line ${i + 1}: lorem ipsum dolor sit amet consectetur adipiscing elit.`,
   );
 
+// Short lines that fit inside a narrow column on a portrait page, so two columns
+// leave a clean gutter (long `para` lines overflow past page center and erase it).
+// Distinguishable per-column markers so reading order (left column before right) is
+// testable from extracted text.
+const leftcol = (n) => Array.from({ length: n }, (_, i) => `L${i + 1} left.`);
+const rightcol = (n) => Array.from({ length: n }, (_, i) => `R${i + 1} right.`);
+
 mkdirSync(new URL("./fixtures/", import.meta.url), { recursive: true });
 
 // Single column, portrait letter (612 x 792)
@@ -61,4 +68,17 @@ writeFileSync(
   ),
 );
 
-console.log("wrote test/fixtures/single-col.pdf, two-col.pdf");
+// Mixed page (portrait letter): full-width title band over a two-column body.
+writeFileSync(
+  new URL("./fixtures/mixed.pdf", import.meta.url),
+  buildPdf(
+    [0, 0, 612, 792],
+    [
+      { x: 72, y: 740, size: 16, lines: para(2) },            // full-width title (crosses center)
+      { x: 60, y: 690, size: 10, lines: leftcol(30) },        // left column (ends before center)
+      { x: 320, y: 690, size: 10, lines: rightcol(30) },      // right column (starts after center)
+    ],
+  ),
+);
+
+console.log("wrote test/fixtures/single-col.pdf, two-col.pdf, mixed.pdf");

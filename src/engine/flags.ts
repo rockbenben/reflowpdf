@@ -5,6 +5,8 @@
  * both the Node runner and the browser Web Worker.
  */
 
+import type { Band } from "./segment.js";
+
 export interface DeviceProfile {
   /** device screen width in pixels (k2pdfopt -w) */
   width: number;
@@ -27,8 +29,9 @@ export interface ConvertOptions {
    *   native vector + color. Most faithful, but text is as small as fit-width.
    * - "reflow": re-flow text into a single large column. Biggest text, but
    *   rasterizes and breaks multi-column / boxed layouts apart. Plain prose only.
+   * - "hybrid": per-page split — multi-column bands magnified (vector), full-width bands reflowed (big text). Born-digital only; falls back to magnify with a notice when no text layer.
    */
-  layout?: "magnify" | "preserve" | "reflow";
+  layout?: "magnify" | "preserve" | "reflow" | "hybrid";
   /** [reflow only] font scale multiplier (1.0 ≈ 12pt). */
   fontScale?: number;
   /** [reflow only] trim white margins. Default true. (preserve always trims.) */
@@ -37,6 +40,8 @@ export interface ConvertOptions {
   columns?: 1 | 2 | "auto";
   /** progress callback as pages are processed. */
   onProgress?: (p: { page: number; total: number }) => void;
+  /** notice callback for non-fatal events (e.g. "noTextLayerFallback"). */
+  onNotice?: (code: string) => void;
 }
 
 /**
@@ -98,4 +103,23 @@ export function optionsToArgs(opts: ConvertOptions = {}): string[] {
   args.push("-c");
 
   return args;
+}
+
+/**
+ * k2pdfopt args to convert ONE band of a source page via a crop box.
+ * "multi" bands reuse the magnify (2col) mapping; "full" bands reuse reflow.
+ * The crop box is emitted as -cbox<page> left,top,width,height in INCHES,
+ * measured from the page's upper-left corner (k2pdfopt's -cbox convention).
+ */
+export function bandArgs(
+  band: Band,
+  srcPage1: number,
+  opts: { device?: ConvertOptions["device"] } = {},
+): string[] {
+  const layout = band.type === "multi" ? "magnify" : "reflow";
+  const base = optionsToArgs({ layout, device: opts.device });
+  const inch = (pt: number) => (pt / 72).toFixed(3);
+  const { x, y, w, h } = band.rect;
+  const box = `${inch(x)},${inch(y)},${inch(w)},${inch(h)}`;
+  return [`-cbox${srcPage1}`, box, "-p", String(srcPage1), ...base];
 }

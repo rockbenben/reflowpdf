@@ -1,8 +1,8 @@
 /** Message protocol shared between the main thread and the k2pdfopt worker. */
 import type { ConvertOptions } from "./flags.js";
 
-/** Options sent to the worker (onProgress can't cross the boundary; stripped). */
-export type WireOptions = Omit<ConvertOptions, "onProgress">;
+/** Options sent to the worker (callbacks can't cross the boundary; stripped). */
+export type WireOptions = Omit<ConvertOptions, "onProgress" | "onNotice">;
 
 export type MainToWorker = {
   type: "convert";
@@ -16,5 +16,6 @@ export type MainToWorker = {
 
 export type WorkerToMain =
   | { type: "progress"; id: number; page: number; total: number }
+  | { type: "notice"; id: number; code: string }
   | { type: "done"; id: number; output: ArrayBuffer }
   | { type: "error"; id: number; message: string };

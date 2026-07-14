@@ -10,11 +10,15 @@
 /// <reference lib="webworker" />
 import { optionsToArgs } from "./flags.js";
 import type { MainToWorker, WorkerToMain } from "./protocol.js";
+// hybrid.js / segmentPdf.js / pdfCompose.js are imported lazily inside the hybrid
+// branch below so pdf.js + pdf-lib stay out of the worker payload for the other
+// three modes (magnify / preserve / reflow), which never touch them.
 
 interface K2Module {
   FS: {
     writeFile(p: string, d: Uint8Array): void;
     readFile(p: string): Uint8Array;
+    unlink(p: string): void;
   };
   callMain(args: string[]): number;
 }
@@ -52,11 +56,43 @@ self.addEventListener("message", async (ev: MessageEvent<MainToWorker>) => {
     const Module = await createK2({
       noInitialRun: true,
       print: (s: string) => {
+        if (opts.layout === "hybrid") return; // convertHybrid drives band-level progress
         const m = /SOURCE PAGE (\d+) of (\d+)/.exec(s);
         if (m) post({ type: "progress", id, page: +m[1], total: +m[2] });
       },
       printErr: () => {},
     });
+
+    const runK2 = (args: string[], inBytes: Uint8Array): Uint8Array => {
+      Module.FS.writeFile("/in.pdf", inBytes);
+      try { Module.FS.unlink("/out.pdf"); } catch { /* first run: no prior output */ }
+      const rc = Module.callMain(["-x", ...args, "-o", "/out.pdf", "/in.pdf"]);
+      if (rc) throw new Error(`k2pdfopt exited with code ${rc}`);
+      const o = Module.FS.readFile("/out.pdf");
+      if (!o || o.length === 0) throw new Error("k2pdfopt produced no output");
+      return o;
+    };
+
+    if (opts.layout === "hybrid") {
+      // Lazy chunk: only a hybrid conversion pulls pdf.js (segmentPdf) + pdf-lib
+      // (pdfCompose) over the wire.
+      const [{ convertHybrid }, { extractDocText }, { mergePdfs }] = await Promise.all([
+        import("./hybrid.js"),
+        import("./segmentPdf.js"),
+        import("./pdfCompose.js"),
+      ]);
+      const inBytes = new Uint8Array(input);
+      const out = await convertHybrid(inBytes, { device: opts.device }, {
+        extractDocText,
+        runK2,
+        mergePdfs,
+        onProgress: (done, total) => post({ type: "progress", id, page: done, total }),
+        onNotice: (code) => post({ type: "notice", id, code }),
+      });
+      const buf = out.slice().buffer;
+      post({ type: "done", id, output: buf }, [buf]);
+      return;
+    }
 
     Module.FS.writeFile("/in.pdf", new Uint8Array(input));
     const args = ["-x", ...optionsToArgs(opts), "-o", "/out.pdf", "/in.pdf"];

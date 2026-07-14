@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { optionsToArgs, DEVICES } from "./flags.js";
+import { optionsToArgs, DEVICES, bandArgs } from "./flags.js";
+import type { Band } from "./segment.js";
 
 describe("optionsToArgs", () => {
   it("defaults to magnify (auto-column, native) + color + phone device", () => {
@@ -79,5 +80,28 @@ describe("optionsToArgs", () => {
   it("reflow: keeps source margins with -m 0 when trimMargins is false", () => {
     const a = optionsToArgs({ layout: "reflow", trimMargins: false });
     expect(a[a.indexOf("-m") + 1]).toBe("0");
+  });
+});
+
+describe("bandArgs", () => {
+  const multi: Band = { type: "multi", rect: { x: 72, y: 144, w: 468, h: 288 } };
+  const full: Band = { type: "full", rect: { x: 72, y: 72, w: 468, h: 72 } };
+
+  it("multi band → 2col + cbox for the given page (inches, upper-left)", () => {
+    const a = bandArgs(multi, 3, { device: "phone" });
+    expect(a).toContain("-cbox3");
+    expect(a[a.indexOf("-cbox3") + 1]).toBe("1.000,2.000,6.500,4.000"); // pt/72
+    expect(a.join(" ")).toContain("-mode 2col");
+    expect(a).toContain("-p");
+    expect(a[a.indexOf("-p") + 1]).toBe("3");
+  });
+
+  it("full band → reflow (no -mode) + cbox", () => {
+    const a = bandArgs(full, 1, { device: "phone" });
+    expect(a).toContain("-cbox1");
+    expect(a).not.toContain("-mode");
+    expect(a).toContain("-c"); // still color
+    expect(a).toContain("-p");
+    expect(a[a.indexOf("-p") + 1]).toBe("1");
   });
 });
