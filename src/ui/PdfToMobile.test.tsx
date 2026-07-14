@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PdfToMobile from "./PdfToMobile.js";
 import { zh } from "./messages.js";
 
@@ -110,5 +111,33 @@ describe("PdfToMobile", () => {
     await waitFor(() => expect(btn.disabled).toBe(false));
     fireEvent.click(btn);
     await screen.findByText(zh.errGeneric);
+  });
+
+  it("passes layout=hybrid to convert when the hybrid mode is selected", async () => {
+    const convert = vi.fn(async () => new Uint8Array([37, 80, 68, 70])); // %PDF
+    const user = userEvent.setup();
+    render(<PdfToMobile convert={convert} />);
+    // select the file
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(input, new File([new Uint8Array([1, 2, 3])], "a.pdf", { type: "application/pdf" }));
+    await user.click(screen.getByText(zh.layoutHybrid));
+    await user.click(screen.getByTestId("convert-btn").querySelector("button")!);
+    expect(convert).toHaveBeenCalledWith(expect.any(Uint8Array), expect.objectContaining({ layout: "hybrid" }));
+  });
+
+  it("shows no-text-layer notice banner when convert calls onNotice", async () => {
+    const convert = vi.fn(async (_input, opts) => {
+      opts.onNotice?.("noTextLayerFallback");
+      return new Uint8Array([37, 80, 68, 70]); // %PDF
+    });
+    const user = userEvent.setup();
+    render(<PdfToMobile convert={convert} />);
+    // select the file
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(input, new File([new Uint8Array([1, 2, 3])], "a.pdf", { type: "application/pdf" }));
+    await user.click(screen.getByTestId("convert-btn").querySelector("button")!);
+
+    // Assert the notice banner appears
+    expect(await screen.findByText(zh.noticeNoTextLayer)).toBeTruthy();
   });
 });

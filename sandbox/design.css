@@ -1,0 +1,180 @@
+/* ReflowPDF — Direction B "Optical Instrument"
+   Bespoke layer on top of the antd token theme (sandbox/theme.ts). Everything is
+   scoped under .rp so it never leaks into antd internals it shouldn't. */
+
+:root {
+  --bg: #eef1f3;
+  --panel: #ffffff;
+  --graphite: #141a1e;
+  --graphite-2: #4a555c;
+  --muted: #7c868c;
+  --line: #d3dade;
+  --line-2: #e5eaed;
+  --lens: #1466b3;
+  --lens-soft: #e3eef8;
+  --reticle: #d4483f;
+  --disp: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+html { -webkit-font-smoothing: antialiased; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--graphite);
+  font-family: var(--body);
+}
+
+.rp { max-width: 1120px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 30px) 56px; }
+
+/* ---- top bar --------------------------------------------------------- */
+.rp-topline { height: 22px; border-bottom: 1px solid var(--line); position: relative; margin-top: 16px; }
+.rp-topline::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px;
+  background-image: linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 40px 100%;
+}
+.rp-top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0 22px; }
+.rp-brand { display: flex; align-items: center; gap: 12px; font-family: var(--disp); font-weight: 700; font-size: 19px; letter-spacing: -0.01em; }
+.rp-lensmark { width: 26px; height: 26px; border: 2px solid var(--graphite); border-radius: 50%; position: relative; flex: none; }
+.rp-lensmark::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--lens); opacity: 0.16; }
+.rp-lensmark::after { content: ""; position: absolute; right: -5px; bottom: -5px; width: 10px; height: 2.5px; background: var(--graphite); transform: rotate(45deg); transform-origin: left; border-radius: 2px; }
+.rp-top nav { display: flex; align-items: center; gap: 16px; font-family: var(--mono); font-size: 12px; color: var(--graphite-2); }
+.rp-top nav .k { letter-spacing: 0.08em; text-transform: uppercase; }
+.rp-top nav .k.b { color: var(--lens); }
+
+/* language toggle (antd Segmented, size small) sits here */
+.rp-lang .ant-segmented { font-family: var(--mono); }
+
+/* ---- hero ------------------------------------------------------------ */
+.rp-hero {
+  display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line);
+  background: var(--panel); border-radius: 14px; overflow: hidden;
+}
+.rp-hcol { padding: clamp(28px, 4vw, 46px); }
+.rp-hcol.left { border-right: 1px solid var(--line); }
+.rp-kicker {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--lens); display: flex; gap: 10px; align-items: center; margin-bottom: 22px;
+}
+.rp-kicker .id { color: var(--muted); }
+.rp-kicker::before { content: ""; width: 22px; height: 1px; background: var(--lens); }
+.rp-h1 { font-family: var(--disp); font-weight: 600; font-size: clamp(34px, 5vw, 48px); line-height: 1.04; letter-spacing: -0.02em; margin: 0 0 18px; }
+.rp-h1 .hl { color: var(--lens); }
+.rp-lede { font-size: 16px; color: var(--graphite-2); max-width: 42ch; margin: 0 0 28px; line-height: 1.55; }
+.rp-specs { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line-2); font-family: var(--mono); }
+.rp-spec { padding: 13px 0; border-bottom: 1px solid var(--line-2); }
+.rp-spec:nth-child(odd) { padding-right: 16px; border-right: 1px solid var(--line-2); }
+.rp-spec:nth-child(even) { padding-left: 16px; }
+.rp-spec .k { color: var(--muted); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+.rp-spec .v { color: var(--graphite); font-size: 14px; margin-top: 2px; }
+
+/* signature: optical bench — specimen + loupe + real formula */
+.rp-bench {
+  background: radial-gradient(120% 90% at 72% 18%, var(--lens-soft), transparent 60%), var(--panel);
+  position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 340px;
+}
+.rp-specimen {
+  font-size: 8.5px; line-height: 1.5; color: #aeb7bd; column-count: 2; column-gap: 14px;
+  padding: 0 2px; user-select: none; letter-spacing: 0.2px;
+}
+.rp-loupe {
+  position: absolute; top: clamp(70px, 14%, 110px); left: clamp(80px, 34%, 170px);
+  width: 132px; height: 132px; border-radius: 50%; border: 2px solid var(--graphite);
+  background: var(--panel); overflow: hidden; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 6px rgba(20, 26, 30, 0.05), 0 22px 40px -18px rgba(20, 26, 30, 0.5);
+}
+.rp-loupe .z { font-family: var(--disp); font-weight: 500; font-size: 15px; text-align: center; padding: 0 12px; line-height: 1.25; color: var(--graphite); }
+.rp-loupe .z b { color: var(--lens); font-weight: 700; }
+.rp-loupe::after { content: ""; position: absolute; right: -15px; bottom: -15px; width: 34px; height: 6px; background: var(--graphite); transform: rotate(45deg); border-radius: 3px; }
+.rp-formula {
+  margin-top: 26px; border-top: 1px dashed var(--line); padding-top: 16px; font-family: var(--mono);
+  font-size: 12.5px; color: var(--graphite-2); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.rp-formula .eq { color: var(--graphite); font-weight: 500; }
+.rp-formula .r { color: var(--reticle); }
+
+/* ---- converter panel ------------------------------------------------- */
+.rp-panelwrap { position: relative; margin-top: 22px; }
+.rp-panelwrap::before {
+  content: "CONVERT"; position: absolute; top: -8px; left: 24px; z-index: 1; background: var(--bg);
+  padding: 0 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; color: var(--muted);
+}
+.rp-panelwrap { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: clamp(18px, 3vw, 30px) clamp(16px, 3vw, 32px) clamp(20px, 3vw, 32px); }
+
+/* the reusable converter, restyled from the inside */
+.rp-converter.ant-card { background: transparent; }
+.rp-converter .ant-card-body { padding: 0; }
+
+/* drop zone → optical "bench frame" */
+.rp-converter .ant-upload-wrapper .ant-upload-drag {
+  border: 1.5px solid var(--line); border-radius: 12px;
+  background: linear-gradient(var(--bg), var(--panel));
+}
+.rp-converter .ant-upload-wrapper .ant-upload-drag:hover { border-color: var(--lens); }
+.rp-converter .ant-upload-drag-icon .anticon { color: var(--lens); font-size: 34px; }
+.rp-converter .ant-upload-text { font-family: var(--disp) !important; font-weight: 600; font-size: 18px !important; color: var(--graphite) !important; }
+.rp-converter .ant-upload-hint { font-family: var(--mono); font-size: 12px !important; color: var(--muted) !important; letter-spacing: 0.02em; }
+
+/* mode selector label + descriptions */
+.rp-converter .ant-typography strong { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.rp-converter .ant-segmented-item-label { font-family: var(--disp); font-weight: 500; padding: 0 14px; }
+.rp-desc { font-size: 13.5px !important; color: var(--graphite-2) !important; line-height: 1.55; }
+.rp-desc-b { color: var(--graphite); font-weight: 600; }
+.rp-note {
+  font-family: var(--mono) !important; font-size: 11.5px !important; font-style: normal !important;
+  color: var(--muted) !important; border-left: 2px solid var(--line); padding-left: 10px;
+}
+
+/* primary CTA — instrument run button */
+.rp-converter .ant-btn-primary { font-family: var(--disp); letter-spacing: 0.01em; }
+
+/* privacy line */
+.rp-priv { font-family: var(--mono); font-size: 11.5px; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+.rp-priv .r { width: 8px; height: 8px; border: 1.5px solid var(--reticle); border-radius: 50%; flex: none; }
+
+/* ---- more tools (sibling cross-links) -------------------------------- */
+.rp-tools { margin-top: 30px; }
+.rp-tools-head {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+}
+.rp-tools-head::before { content: ""; width: 22px; height: 1px; background: var(--line); }
+.rp-tools-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.rp-tool {
+  border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+  padding: 14px 16px; text-decoration: none; display: flex; flex-direction: column; gap: 5px;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.rp-tool:hover {
+  border-color: var(--lens); transform: translateY(-2px);
+  box-shadow: 0 14px 26px -18px rgba(20, 102, 179, 0.5);
+}
+.rp-tool-name {
+  font-family: var(--disp); font-weight: 600; font-size: 15px; color: var(--graphite);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.rp-tool-name i { font-style: normal; color: var(--muted); font-size: 13px; }
+.rp-tool:hover .rp-tool-name i { color: var(--lens); }
+.rp-tool-desc { font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+/* ---- footer ---------------------------------------------------------- */
+.rp-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  border-top: 1px solid var(--line); margin-top: 30px; padding-top: 22px;
+  font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+}
+.rp-footer a { color: var(--graphite-2); text-decoration: none; }
+.rp-footer a:hover { color: var(--lens); }
+
+/* ---- responsive ------------------------------------------------------ */
+@media (max-width: 900px) {
+  .rp-hero { grid-template-columns: 1fr; }
+  .rp-hcol.left { border-right: 0; border-bottom: 1px solid var(--line); }
+  .rp-bench { min-height: 300px; }
+  .rp-loupe { left: 32%; }
+  .rp-tools-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }

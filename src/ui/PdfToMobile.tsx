@@ -28,11 +28,21 @@ export interface PdfToMobileProps {
   convert?: ConvertFn;
   /** config for the default convertPdf (worker factory, module URL) */
   engineConfig?: ConvertPdfConfig;
+  /** show the built-in title/subtitle. Off when the host page provides its own hero. */
+  showHeader?: boolean;
 }
 
 type Phase = "idle" | "busy" | "done" | "error";
 
-export function PdfToMobile({ messages = zh, convert, engineConfig }: PdfToMobileProps) {
+/** Which description line to show for the currently-selected layout mode. */
+const LAYOUT_DESC: Record<"magnify" | "hybrid" | "preserve" | "reflow", keyof Messages> = {
+  magnify: "descMagnify",
+  hybrid: "descHybrid",
+  preserve: "descPreserve",
+  reflow: "descReflow",
+};
+
+export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader = true }: PdfToMobileProps) {
   const t = useCallback((k: keyof Messages) => messages[k], [messages]);
 
   const [file, setFile] = useState<File | null>(null);
@@ -42,8 +52,9 @@ export function PdfToMobile({ messages = zh, convert, engineConfig }: PdfToMobil
     "errEncrypted" | "errGeneric" | "errNoFile" | "errTooLarge" | null
   >(null);
   const [result, setResult] = useState<{ url: string; size: number; name: string } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const [layout, setLayout] = useState<"magnify" | "preserve" | "reflow">("magnify");
+  const [layout, setLayout] = useState<"magnify" | "preserve" | "reflow" | "hybrid">("magnify");
   const [device, setDevice] = useState<"phone" | "tablet">("phone");
   const [columns, setColumns] = useState<1 | 2 | "auto">("auto");
   const [fontScale, setFontScale] = useState(1);
@@ -71,6 +82,7 @@ export function PdfToMobile({ messages = zh, convert, engineConfig }: PdfToMobil
     setPhase("idle");
     setPct(0);
     setErrorKey(null);
+    setNotice(null);
   };
 
   const onConvert = useCallback(async () => {
@@ -88,6 +100,7 @@ export function PdfToMobile({ messages = zh, convert, engineConfig }: PdfToMobil
     setPhase("busy");
     setPct(0);
     setErrorKey(null);
+    setNotice(null);
     try {
       const input = new Uint8Array(await file.arrayBuffer());
       const opts: ConvertOptions = {
@@ -98,6 +111,9 @@ export function PdfToMobile({ messages = zh, convert, engineConfig }: PdfToMobil
         trimMargins,
         onProgress: ({ page, total }) =>
           setPct(total > 0 ? Math.min(99, Math.round((page / total) * 100)) : 0),
+        onNotice: (code) => {
+          if (code === "noTextLayerFallback") setNotice(t("noticeNoTextLayer"));
+        },
       };
       const out = await convertFn(input, opts);
       setPct(100);
@@ -114,17 +130,19 @@ export function PdfToMobile({ messages = zh, convert, engineConfig }: PdfToMobil
       setErrorKey(/password|encrypt/.test(msg) ? "errEncrypted" : "errGeneric");
       setPhase("error");
     }
-  }, [file, layout, device, columns, fontScale, trimMargins, convertFn]);
+  }, [file, layout, device, columns, fontScale, trimMargins, convertFn, t]);
 
   return (
-    <Card variant="borderless" style={{ maxWidth: 720, margin: "0 auto" }}>
+    <Card variant="borderless" className="rp-converter" style={{ margin: "0 auto" }}>
       <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
-        <div>
-          <Typography.Title level={3} style={{ marginBottom: 4 }}>
-            <MobileOutlined /> {t("title")}
-          </Typography.Title>
-          <Typography.Text type="secondary">{t("subtitle")}</Typography.Text>
-        </div>
+        {showHeader && (
+          <div>
+            <Typography.Title level={3} style={{ marginBottom: 4 }}>
+              <MobileOutlined /> {t("title")}
+            </Typography.Title>
+            <Typography.Text type="secondary">{t("subtitle")}</Typography.Text>
+          </div>
+        )}
 
         <Upload.Dragger
           accept="application/pdf,.pdf"
@@ -152,16 +170,20 @@ export function PdfToMobile({ messages = zh, convert, engineConfig }: PdfToMobil
             <Typography.Text strong>{t("layout")}</Typography.Text>
             <Segmented
               value={layout}
-              onChange={(v) => setLayout(v as "magnify" | "preserve" | "reflow")}
+              onChange={(v) => setLayout(v as "magnify" | "preserve" | "reflow" | "hybrid")}
               options={[
                 { label: t("layoutMagnify"), value: "magnify" },
+                { label: t("layoutHybrid"), value: "hybrid" },
                 { label: t("layoutPreserve"), value: "preserve" },
                 { label: t("layoutReflow"), value: "reflow" },
               ]}
             />
           </Space>
-          <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 4, marginBottom: 0 }}>
-            {t("layoutHint")}
+          <Typography.Paragraph className="rp-desc" type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+            {t(LAYOUT_DESC[layout])}
+          </Typography.Paragraph>
+          <Typography.Paragraph className="rp-note" type="secondary" style={{ marginTop: 10, marginBottom: 0 }}>
+            {t("layoutComplexNote")}
           </Typography.Paragraph>
         </div>
 
@@ -234,6 +256,8 @@ export function PdfToMobile({ messages = zh, convert, engineConfig }: PdfToMobil
           <Alert type="error" showIcon title={t(errorKey)} />
         )}
 
+        {phase === "done" && notice && <Alert type="info" showIcon title={notice} />}
+
         {phase === "done" && result && (
           <Card size="small" title={t("resultTitle")}>
             <Space orientation="vertical" style={{ width: "100%" }} size="middle">
@@ -259,9 +283,7 @@ export function PdfToMobile({ messages = zh, convert, engineConfig }: PdfToMobil
           </Card>
         )}
 
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          🔒 {t("privacy")}
-        </Typography.Text>
+        <span className="rp-priv"><i className="r" />{t("privacy")}</span>
       </Space>
     </Card>
   );
