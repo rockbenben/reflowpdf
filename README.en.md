@@ -14,30 +14,32 @@ Powered by [k2pdfopt](https://www.willus.com/k2pdfopt/) compiled to WebAssembly.
 
 [中文](./README.md)
 
-![ReflowPDF screenshot](docs/screenshot.png)
+![ReflowPDF screenshot](docs/screenshot-en.png)
 
 ---
 
 ## What it does / doesn't (read first)
 
 ReflowPDF fixes "the PDF text is too small on my phone, I keep pinch-zooming" — by
-**enlarging / reflowing**.
+**enlarging / reflowing**, entirely in your browser, nothing uploaded.
 
-- ✅ **Text-heavy docs** (reports, books) → reflowed into a single big-text column; read on a phone without zooming.
-- ✅ **Multi-column / side-by-side regions** → "Magnify" puts each region on its own enlarged page.
-- ⚠️ **It does NOT guarantee preserving the original layout.** For a single-column,
-  full-width dense document you cannot both keep the layout and make the text bigger —
-  that's an information-density limit. Only AI reflow (Adobe Liquid Mode / MinerU-class
-  models, which need a backend + upload) can do that, conflicting with this project's
-  static / no-upload premise. Use "Preserve layout" mode for a faithful view (text stays small).
+**"Will complex layouts (multi-column / figures / tables / equations) get mangled? Is reading order preserved?"** — the most-asked question, answered up front:
 
-## Three layout modes
+- ✅ **Multi-column / figures / tables / equations** (papers) → "Magnify" and "Smart hybrid" **preserve reading order** and enlarge each column/figure **as an intact block** — figures, tables and equations are kept as-is, **never flattened or torn apart**.
+- ✅ **Mixed single/two-column pages** (a full-width title/abstract over a two-column body) → "Smart hybrid" keeps the two-column vector and enlarges the full-width parts into big text.
+- ✅ **Text-heavy docs** (reports, books) → "Reflow text" reflows into a single big-text column; read on a phone without zooming.
+- ⚠️ **It does NOT semantically reconstruct tables/equations.** This tool *magnifies*, it doesn't re-typeset — it won't re-lay a wide table into a portrait mobile table. That reconstruction needs an AI layout model (Adobe Liquid Mode / MinerU-class, backend + upload) and conflicts with the local, no-upload premise.
+- ⚠️ **A single-column, full-width dense document** can't both keep its layout and get bigger text — an information-density limit. "Smart hybrid" lifts this for born-digital PDFs by reflowing only the full-width regions; otherwise use "Preserve layout" for a faithful view (text stays small) or "Reflow text" for the biggest type (breaks layout).
+- ⚠️ **Scans** (no text layer): "Smart hybrid" falls back to "Magnify"; "Reflow text" would need OCR, which isn't done yet.
 
-| Mode | Effect | Best for |
-|---|---|---|
-| **Magnify** (default) | Native vector + color kept; auto-detects columns and enlarges each region onto its own page; single-column pages fall back to fit-width | multi-column / boxed |
-| **Preserve layout** | Each page → one page scaled to phone width, vector + color, but text is small | faithful preview |
-| **Reflow text** | Biggest, single-column text — but rasterizes, drops color, breaks layout | plain prose |
+## Four layout modes
+
+| Mode | Effect | Reading order / figures | Best for |
+|---|---|---|---|
+| **Magnify** (default) | Native vector + color kept; auto-detects columns and enlarges each region onto its own page; single-column pages fall back to fit-width | preserved; figures enlarged as intact blocks | multi-column / papers with figures |
+| **Smart hybrid** | Per-page split: two-column regions kept as magnified vector, full-width regions (title/abstract) turned into big text (born-digital only) | preserved; two-column stays vector | pages mixing single & two-column |
+| **Preserve layout** | Each page → one page scaled to phone width, vector + color, but text is small | preserved | faithful preview |
+| **Reflow text** | Biggest, single-column text — but rasterizes, drops color, breaks layout; complex tables may garble | preserved but layout broken | plain prose |
 
 > 🔒 Privacy: conversion runs in the browser via WebAssembly; your PDF is **never uploaded**.
 
@@ -76,10 +78,11 @@ The engine (`src/engine/`) is decoupled from the UI (`src/ui/`) and reusable.
 import { convertPdf } from "./src/engine/convertPdf";
 
 const out = await convertPdf(pdfBytes, {
-  layout: "magnify",        // "magnify" (default) | "preserve" | "reflow"
+  layout: "magnify",        // "magnify" (default) | "hybrid" | "preserve" | "reflow"
   device: "phone",          // "phone" | "tablet" | { width, height, dpi }
   columns: "auto", fontScale: 1.0, trimMargins: true,  // reflow-only
   onProgress: ({ page, total }) => console.log(`${page}/${total}`),
+  onNotice: (code) => {},   // non-fatal notices, e.g. "noTextLayerFallback"
 }, {
   // worker creation is bundler-specific — caller must provide it (see sandbox/main.tsx)
   moduleUrl: new URL("k2pdfopt.mjs", document.baseURI).href,
