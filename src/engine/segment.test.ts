@@ -76,4 +76,21 @@ describe("segmentPage", () => {
     const bands = segmentPage([...title, ...bodyL, ...bodyR], W, H);
     expect(bands.map((b) => b.type)).toEqual(["full", "multi"]);
   });
+
+  it("drops a narrow centered element (page number) that only straddles the gutter", () => {
+    const bodyL = rows(20, 60, 290, 80);
+    const bodyR = rows(20, 320, 550, 80);
+    const pageNum = rows(1, 300, 314, 380);      // ~14pt wide, crosses center → misread as full
+    const bands = segmentPage([...bodyL, ...bodyR, ...pageNum], W, H);
+    // the tiny "full" band must NOT survive as its own (reflowed) band
+    expect(bands.map((b) => b.type)).toEqual(["multi"]);
+  });
+
+  it("keeps a genuinely wide full-width band (real title)", () => {
+    const title = rows(2, 72, 540, 60);          // 468pt wide → real full-width
+    const bodyL = rows(20, 60, 290, 130);
+    const bodyR = rows(20, 320, 550, 130);
+    const bands = segmentPage([...title, ...bodyL, ...bodyR], W, H);
+    expect(bands.map((b) => b.type)).toEqual(["full", "multi"]);
+  });
 });

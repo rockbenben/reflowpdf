@@ -21,12 +21,20 @@ export interface SegmentConfig {
   minColRows: number;
   /** padding (pt) added around each band rect, clamped to page. */
   padPt: number;
+  /**
+   * A "full" band narrower than this fraction of the page width is a stray
+   * centered element (page number, isolated label) that merely straddled the
+   * gutter — not real full-width content. Such bands are dropped so they don't
+   * become their own reflowed page.
+   */
+  minFullWidthFrac: number;
 }
 export const SEGMENT_DEFAULTS: SegmentConfig = {
   gutterMinGapPt: 18,
   gutterMinRowFrac: 0.5,
   minColRows: 3,
   padPt: 3,
+  minFullWidthFrac: 0.4,
 };
 
 interface Row { items: TextItem[]; xL: number; xR: number; yTop: number; yBot: number }
@@ -133,8 +141,16 @@ export function segmentPage(
     else merged.push({ type: run.type, rows: [...run.rows] });
   }
 
-  return merged.map((run) => ({
+  const bands: Band[] = merged.map((run) => ({
     type: run.type === "col" ? "multi" : "full",
     rect: bandRect(run.rows, pageW, pageH, cfg),
   }));
+
+  // Drop stray narrow "full" bands (a centered page number can straddle the
+  // gutter and be misread as a full-width row). Keep multi bands and genuinely
+  // wide full bands; if filtering would remove everything, keep the original.
+  const kept = bands.filter(
+    (b) => b.type === "multi" || b.rect.w >= cfg.minFullWidthFrac * pageW,
+  );
+  return kept.length > 0 ? kept : bands;
 }
