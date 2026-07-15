@@ -53,13 +53,13 @@ export const zh: Messages = {
   layoutHybrid: "智能混合",
   // Per-mode descriptions — only the selected mode's line is shown.
   descMagnify:
-    "保留原图文与颜色，自动识别栏目、每栏放大成一页。图 / 表 / 公式整块放大、不打散，阅读顺序不变。适合多栏或带图表的论文。",
+    "保留原图文与颜色，自动识别栏目、每栏放大成一页，图 / 表 / 公式整块放大、不打散、阅读顺序不变。多栏论文效果最好；整页满宽单栏只贴合宽度、字不明显变大。",
   descHybrid:
-    "在「放大阅读」之上，把全宽的标题 / 摘要也转成大字，双栏正文仍保矢量。适合页内单双混合的论文。仅电子版 PDF；扫描件自动退回「放大阅读」。",
+    "逐页拆分：双栏区块保矢量放大、全宽区块（标题 / 摘要）转大字。最适合「全宽标题压双栏正文」这类页内混合的论文；整页纯单栏时等同「重排文字」。仅电子版 PDF，扫描件自动退回「放大阅读」。",
   descPreserve:
     "一页对一页，整页缩到手机宽，矢量 + 彩色、最忠实——但字偏小。适合在手机上忠实预览原版面。",
   descReflow:
-    "把文字重排成单栏大字，最大、最好读；但会栅格化、丢色、打散版面，复杂表格可能变乱。仅适合纯文字长文。",
+    "把文字重排成单栏大字，字最大、最好读；但会栅格化、丢色、体积偏大，并打散版面，复杂表格 / 双栏可能变乱。仅适合纯文字长文。",
   layoutComplexNote:
     "提示：本工具是「放大」而非「重排」表格 / 公式——宽表格不会被重排成手机竖版；全程本地、文件不上传。",
   noticeNoTextLayer: "此文档无文字层（可能是扫描件），已按「放大阅读」处理。",
@@ -97,13 +97,13 @@ export const en: Messages = {
   layoutHybrid: "Smart hybrid",
   // Per-mode descriptions — only the selected mode's line is shown.
   descMagnify:
-    "Keeps the original text, colors and figures; auto-detects columns and enlarges each onto its own page. Figures, tables and equations are enlarged as intact blocks, reading order preserved. Best for multi-column or figure-heavy papers.",
+    "Keeps the original text, colors and figures; auto-detects columns and enlarges each onto its own page — figures, tables and equations stay intact, reading order preserved. Best for multi-column papers; a full-width single-column page only fits to width (text isn't enlarged).",
   descHybrid:
-    "Like Magnify, but full-width titles/abstracts are turned into big text while the two-column body stays vector. Best for pages that mix single and two columns. Born-digital PDFs only; scans fall back to Magnify.",
+    "Per-page split: two-column regions stay as magnified vector, full-width regions (title/abstract) become big text. Best for pages that mix a full-width heading with a two-column body; a purely single-column page falls back to Reflow. Born-digital PDFs only; scans fall back to Magnify.",
   descPreserve:
     "One page each, the whole page scaled to phone width — vector + color, most faithful, but text stays small. Best for a faithful on-phone preview.",
   descReflow:
-    "Reflows text into a single big-text column — biggest and most readable, but rasterizes, drops color and breaks the layout; complex tables may garble. Plain prose only.",
+    "Reflows text into one big-text column — biggest and most readable, but rasterizes, drops color and produces larger files; it breaks the layout and can garble complex tables or two-column text. Plain prose only.",
   layoutComplexNote:
     "Note: this tool magnifies rather than re-typesetting — wide tables/equations aren't rebuilt into a mobile layout — and your file is never uploaded.",
   noticeNoTextLayer: "No text layer (likely a scan) — processed as ‘Magnify’ instead.",
