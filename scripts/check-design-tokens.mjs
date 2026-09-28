@@ -1,17 +1,23 @@
 #!/usr/bin/env node
 // Design-token drift guard (DESIGN.md → Do's and Don'ts).
 //
-// The palette is declared twice on purpose: sandbox/theme.ts feeds antd's token
-// system and the `:root` block of sandbox/design.css feeds the bespoke layer.
-// Nothing stops those two lists from drifting, and a drifted pair shows up as two
-// slightly different greys standing in the same role. This check fails when they
-// disagree, so the fix is a one-line edit rather than a design review.
+// The palette is declared in several places on purpose: sandbox/theme.ts feeds
+// antd's token system, the `:root` block of sandbox/design.css feeds the bespoke
+// layer, and docs/og-card.html repeats it again because a social card has to be
+// a standalone page. Nothing stops those copies from drifting, and a drifted pair
+// shows up as two slightly different greys standing in the same role. This check
+// fails when they disagree, so the fix is a one-line edit rather than a design
+// review.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const root = new URL("../", import.meta.url);
 const themeSrc = readFileSync(fileURLToPath(new URL("sandbox/theme.ts", root)), "utf8");
 const cssSrc = readFileSync(fileURLToPath(new URL("sandbox/design.css", root)), "utf8");
+
+// Other pages that re-declare the palette. Only colour-valued custom properties
+// are compared, so a card may keep its own shadow geometry.
+const SHELLS = ["docs/og-card.html"];
 
 /** antd token (or `Component.token`) → the CSS custom property holding its value. */
 const PAIRED = {
@@ -63,10 +69,29 @@ for (const [token, cssVar] of Object.entries(PAIRED)) {
   }
 }
 
+let shellChecked = 0;
+for (const shell of SHELLS) {
+  const src = readFileSync(fileURLToPath(new URL(shell, root)), "utf8");
+  const vars = Object.fromEntries(
+    [...src.matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{3,8})/g)].map(([, k, v]) => [k, v]),
+  );
+  for (const [name, value] of Object.entries(vars)) {
+    shellChecked++;
+    if (cssVars[name] && cssVars[name].toLowerCase() !== value.toLowerCase()) {
+      drift.push(`${shell} sets ${name} to ${value} but design.css sets it to ${cssVars[name]}`);
+    }
+    if (!cssVars[name]) {
+      drift.push(`${shell} declares ${name} (${value}), which design.css does not define`);
+    }
+  }
+}
+
 if (drift.length) {
-  console.error("Design token drift between sandbox/theme.ts and sandbox/design.css:\n");
+  console.error("Design token drift across the palette copies:\n");
   for (const line of drift) console.error(`  - ${line}`);
-  console.error("\nAlign both sides, or update DESIGN.md if the roles really changed.");
+  console.error("\nAlign every copy, or update DESIGN.md if the roles really changed.");
   process.exit(1);
 }
-console.log(`design tokens OK — ${Object.keys(PAIRED).length} paired values agree`);
+console.log(
+  `design tokens OK — ${Object.keys(PAIRED).length} antd↔css pairs and ${shellChecked} card tokens agree`,
+);
