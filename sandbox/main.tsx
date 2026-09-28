@@ -125,7 +125,8 @@ function App() {
           </nav>
         </header>
 
-        <section className="rp-hero">
+        <main>
+          <section className="rp-hero">
           <div className="rp-hcol left">
             <div className="rp-kicker">
               <span>{h.kicker}</span>
@@ -185,7 +186,8 @@ function App() {
               </a>
             ))}
           </div>
-        </section>
+          </section>
+        </main>
 
         <footer className="rp-footer">
           <a href={__REPO_URL__} target="_blank" rel="noopener noreferrer">
