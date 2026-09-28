@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>面向小屏阅读的文档重排方法研究</title>
+    <style>
+      @page { size: A4; margin: 18mm 16mm; }
+      body { font-family: "SimSun", "Songti SC", "Noto Serif CJK SC", serif; color: #111; font-size: 9.4pt; line-height: 1.52; margin: 0; }
+      h1 { font-family: "SimHei", "Heiti SC", sans-serif; font-size: 15pt; text-align: center; margin: 0 0 6pt; line-height: 1.3; }
+      .authors { text-align: center; font-size: 9.6pt; margin-bottom: 2pt; }
+      .affil { text-align: center; font-size: 8.2pt; color: #333; margin-bottom: 10pt; }
+      .abs { column-span: all; }
+      .abs p { text-align: justify; margin: 0 0 4pt; }
+      .kw { font-size: 8.6pt; margin-bottom: 9pt; }
+      h2 { font-family: "SimHei", "Heiti SC", sans-serif; font-size: 10.6pt; margin: 9pt 0 4pt; }
+      .cols { column-count: 2; column-gap: 7mm; text-align: justify; hyphens: auto; }
+      .cols p { margin: 0 0 4.5pt; text-indent: 2em; }
+      .eq { text-align: center; font-family: "Times New Roman", serif; font-style: italic; margin: 5pt 0; text-indent: 0; }
+      table { border-collapse: collapse; width: 100%; font-size: 8.2pt; margin: 5pt 0; }
+      th, td { border: 0.5pt solid #444; padding: 1.6pt 3pt; text-align: center; }
+      .cap { font-size: 8.2pt; text-align: center; text-indent: 0; margin: 2pt 0 6pt; }
+      .fig { height: 46pt; border: 0.6pt solid #555; background:
+        repeating-linear-gradient(90deg, #ddd 0 1.5pt, #fff 1.5pt 6pt); margin: 5pt 0 0; }
+    </style>
+  </head>
+  <body>
+    <h1>面向小屏阅读的文档重排方法研究</h1>
+    <div class="authors">陈维远¹　刘思齐¹²　何明轩²</div>
+    <div class="affil">1. 华东信息工程学院 计算机科学与技术系，上海 200240<br />2. 数字出版与阅读技术重点实验室，北京 100084</div>
+
+    <div class="abs">
+      <p><b>摘　要：</b>随着智能手机成为学术文献的主要阅读终端，为宽版面设计的 PDF 文档在小屏上的可读性问题日益突出。现有整页缩放方法受几何约束限制：区块被放大到铺满屏幕宽度时，其字号增益仅取决于原始栏宽与屏幕宽度之比，因而双栏文档可获得约两倍的视觉增益，而满宽单栏文档几乎无法受益。本文提出一种逐区块混合重排方法，先以文本项的横向投影识别页面分栏结构，再对多栏区块执行保矢量的分栏放大、对全宽区块执行局部重排，最后按阅读顺序合并输出。在 128 篇真实论文上的主观评测表明，该方法在双栏与页内混合版式上的可读性评分显著优于整页缩放基线（p&lt;0.01），且完整保留了图表与公式的原始形态。代码与数据可在匿名仓库获取。</p>
+      <p class="kw"><b>关键词：</b>文档重排；小屏阅读；版面分析；WebAssembly；端侧处理</p>
+    </div>
+
+    <div class="cols">
+      <h2>1　引　言</h2>
+      <p>学术文献的排版传统以 A4 或 Letter 纸面为设计目标，正文字号通常在 9 至 11 磅之间。当此类文档被直接呈现于宽度约为 360 至 430 物理像素的移动屏幕上时，等效字号不足 4 磅，读者必须频繁地进行缩放与平移操作，严重打断阅读连续性。</p>
+      <p>已有的解决路径可分为三类。其一为整页缩放，实现简单且不改变版面语义，但无法提升字号；其二为纯文本重排，可获得最大字号，却会破坏图表、公式与表格的空间关系；其三为基于深度模型的版面理解，效果最优但依赖服务端推理，与隐私敏感场景的需求相悖。</p>
+      <p>本文认为，在端侧算力约束下，兼顾可读性与版面保真度的可行路径是：不做语义级重构，而以几何投影识别区块，再对不同几何形态的区块施以不同策略。</p>
+
+      <h2>2　方法</h2>
+      <p>设页面宽度为 W，文本项集合为 T = {tᵢ}，每个文本项由其包围盒 (x₀, y₀, x₁, y₁) 表示。首先按纵向重叠度将 T 聚合为行集合 R，再对每一行计算横向投影空隙。</p>
+      <p>若某行在中轴邻域内存在宽度不小于 g 的连续空隙，则称该行为分栏行，空隙中心即候选栏沟。取所有分栏行空隙中心的中位数作为栏沟位置 x*，并要求分栏行占比超过阈值 ρ：</p>
+      <p class="eq">ρ = |{r ∈ R : gap(r, x*) ≠ ∅}| / |R| ≥ ρ₀</p>
+      <p>随后按行是否跨越 x* 将其划分为跨栏行与栏内行，连续同类行合并为区块，短小的栏内区块（行数小于 n₀）降级为跨栏区块以避免过度切分。本文取 g = 18 磅、ρ₀ = 0.5、n₀ = 3。</p>
+      <p>对栏内区块，采用保矢量的分栏放大：以区块包围盒为裁剪框，将其单独渲染并缩放至目标设备宽度，颜色、字体与图形对象原样保留。对跨栏区块，采用局部重排以获得更大字号。</p>
+
+      <h2>3　实验</h2>
+      <p>实验语料取自公开预印本平台，涵盖计算机科学、生物医学与材料科学三个学科，共 128 篇，每篇 6 至 24 页。基线方法为整页适配宽度与纯文本重排两种。</p>
+      <table>
+        <tr><th>方法</th><th>可读性</th><th>版面保真</th><th>图表完整</th></tr>
+        <tr><td>整页缩放</td><td>2.31</td><td>4.86</td><td>4.91</td></tr>
+        <tr><td>纯文本重排</td><td>4.42</td><td>2.14</td><td>1.87</td></tr>
+        <tr><td>本文方法</td><td>4.18</td><td>4.02</td><td>4.35</td></tr>
+      </table>
+      <p class="cap">表 1　三种方法的主观评分（5 分制，24 名被试）</p>
+      <div class="fig"></div>
+      <p class="cap">图 1　栏沟检测在页内混合版式上的切分结果</p>
+      <p>结果表明，本文方法在可读性与版面保真之间取得了最佳折中。值得注意的是，对于整页满宽单栏的密集文档，任何放大方法都无法在不重排的前提下提升字号，这是信息密度的物理限制而非算法缺陷。</p>
+
+      <h2>4　结　论</h2>
+      <p>本文提出的逐区块混合重排方法无需语义模型即可在端侧完成，全部处理在浏览器本地执行，文档不上传任何服务器。未来工作包括扫描件的光学字符识别前置与表格结构的保真重排。</p>
+    </div>
+  </body>
+</html>
