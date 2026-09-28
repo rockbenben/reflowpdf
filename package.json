@@ -11,6 +11,7 @@
     "build:pages": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "audit:design": "node scripts/check-design-tokens.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:engine": "node test/make-fixtures.mjs && node test/engine-check.mjs && node test/hybrid-check.mjs"
