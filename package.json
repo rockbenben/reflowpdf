@@ -16,25 +16,26 @@
     "test:engine": "node test/make-fixtures.mjs && node test/engine-check.mjs && node test/hybrid-check.mjs"
   },
   "devDependencies": {
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/file-saver": "^2.0.7",
-    "@types/node": "^24.0.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.3",
+    "@types/node": "^24.19.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^29.1.1",
     "typescript": "^7.0.2",
-    "vite": "^8.1.4",
-    "vitest": "^4.1.10"
+    "vite": "^8.3.1",
+    "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.3.2",
-    "antd": "^6.5.1",
+    "@ant-design/icons": "^6.3.4",
+    "antd": "^6.6.5",
     "file-saver": "^2.0.5",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^6.1.200",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "pdfjs-dist": "^6.3.289",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   }
 }
