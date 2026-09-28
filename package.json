@@ -14,7 +14,8 @@
     "audit:design": "node scripts/check-design-tokens.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:engine": "node test/make-fixtures.mjs && node test/engine-check.mjs && node test/hybrid-check.mjs"
+    "test:engine": "node test/make-fixtures.mjs && node test/engine-check.mjs && node test/hybrid-check.mjs",
+    "make:sample": "node test/make-sample-pdf.mjs"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",

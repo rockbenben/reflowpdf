@@ -58,7 +58,13 @@ bash scripts/fetch-src.sh          # vendor k2pdfopt v2.55 + MuPDF 1.23.7 (gitig
 npm run build:wasm                 # Docker + Emscripten → dist/k2pdfopt.{mjs,wasm}
 npm test && npm run test:engine    # unit + engine integration tests
 npm run build:pages && npx vite preview   # local demo preview
+npm run audit:design               # fail if theme.ts / design.css / og-card.html disagree on a colour
+npm run make:sample                # headless-Chrome print of test/sample-paper.html → the README screenshot's input
 ```
+
+> Visual tokens live in **`DESIGN.md`** (colour, type, radius, spacing, elevation, component rules).
+> `sandbox/theme.ts`, `sandbox/design.css` and `docs/og-card.html` all draw from it, and
+> `npm run audit:design` fails when the three copies drift apart.
 
 > ⚠️ Don't use `npm run dev`: the engine glue is served from `publicDir`, and Vite dev
 > refuses to `import()` a public asset from source. `build + preview` and GitHub Pages work fine.

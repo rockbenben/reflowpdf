@@ -65,7 +65,18 @@ npm run test:engine         # 引擎集成测试(加载真实 wasm 跑 fixture)
 
 # 4. 本地预览 demo
 npm run build:pages && npx vite preview
+
+# 5. 设计契约与素材
+npm run audit:design        # 校验 theme.ts / design.css / og-card.html 三处调色板是否一致
+npm run make:sample         # 用无头 Chrome 把 test/sample-paper.html 打成 README 截图用的中文双栏样张
 ```
+
+> 视觉令牌集中在 **`DESIGN.md`**（颜色 / 字体 / 圆角 / 间距 / 阴影 / 组件规则），
+> `sandbox/theme.ts`、`sandbox/design.css` 与 `docs/og-card.html` 都从它取值；
+> `npm run audit:design` 会在三者取值不一致时直接失败。
+> 重导 `docs/screenshot*.png` 需要真浏览器：起 preview、载入样张、转一次、截 `.rp-panelwrap`，
+> 所以它不是纯脚本步骤；`docs/og-image.png` 则一条命令即可
+> （`node <html-shot>/render.mjs docs/og-card.html docs/og-image.png --palette`）。
 
 > ⚠️ **不要用 `npm run dev` 预览。** 引擎胶水 `dist/k2pdfopt.mjs` 经 `publicDir` 在根路径提供，
 > Vite dev 不允许从源码 `import()` 一个 public 资源(会报 _"should not be imported from source code"_)。
@@ -93,8 +104,9 @@ src/ui/       antd6 组件(主题 token 深度定制)+ 多语言文案
 sandbox/      浏览器 demo(Vite + GitHub Pages)
 scripts/      fetch-src.sh · build.sh(宿主机)· in-docker.sh(容器内 emcc 构建)
 wasm/         config.h(开关第三方库)· shim.c(字体桩函数)
-test/         fixtures + 引擎集成/对比脚本
-docs/         截图 · OG 图
+test/         fixtures + 引擎集成/对比脚本 + README 样张(sample-paper.html)
+docs/         截图 · OG 卡(og-card.html → og-image.png)
+DESIGN.md     视觉令牌契约：颜色 / 字体 / 圆角 / 间距 / 阴影 / 组件规则
 ```
 
 ## API
