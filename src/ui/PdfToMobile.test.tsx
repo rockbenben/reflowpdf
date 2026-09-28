@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PdfToMobile from "./PdfToMobile.js";
+import type { ConvertOptions } from "../engine/flags.js";
 import { zh } from "./messages.js";
 
 afterEach(cleanup);
@@ -139,5 +140,88 @@ describe("PdfToMobile", () => {
 
     // Assert the notice banner appears
     expect(await screen.findByText(zh.noticeNoTextLayer)).toBeTruthy();
+  });
+
+  /**
+   * A convert stub that pauses at each step, so a state is still on screen when
+   * it gets asserted (a plain async stub runs to completion between polling
+   * ticks). `step()` resolves once the test calls release().
+   */
+  function gatedConvert(...steps: Array<(opts: ConvertOptions) => void>) {
+    let release = () => {};
+    const wait = () => new Promise<void>((r) => (release = r));
+    const convert = vi.fn(async (_input: Uint8Array, opts: ConvertOptions) => {
+      for (const step of steps) {
+        step(opts);
+        await wait();
+      }
+      return new Uint8Array([37, 80, 68, 70]); // %PDF
+    });
+    return { convert, release: () => release() };
+  }
+
+  it("counts engine bytes while they arrive, before any page progress", async () => {
+    const MB = 1024 * 1024;
+    const { convert, release } = gatedConvert(
+      (opts) => opts.onEngineProgress?.({ loaded: 5 * MB, total: 26 * MB, source: "network" }),
+      // A gzip transfer reports decoded bytes past the compressed length.
+      (opts) => opts.onEngineProgress?.({ loaded: 27 * MB, total: 26 * MB, source: "network" }),
+      (opts) => opts.onProgress?.({ page: 1, total: 4 }),
+    );
+    render(<PdfToMobile convert={convert} />);
+    pickFile();
+    const btn = screen.getByTestId("convert-btn").querySelector("button") as HTMLButtonElement;
+    await waitFor(() => expect(btn.disabled).toBe(false));
+    fireEvent.click(btn);
+
+    const status = () => screen.getByTestId("status-line").textContent ?? "";
+    await waitFor(() => expect(status()).toBe(`${zh.loadingEngine} 5.0 MB / 26.0 MB`));
+    // No page bar yet — a 0% bar next to a byte counter reads as stuck.
+    expect(document.querySelector(".ant-progress")).toBeNull();
+    release();
+    await waitFor(() => expect(status()).toBe(`${zh.loadingEngine} 27.0 MB`));
+    release();
+    await waitFor(() => expect(status()).toBe(`${zh.converting} 25%`));
+    expect(document.querySelector(".ant-progress")).toBeTruthy();
+    release();
+    await screen.findByText(zh.resultTitle);
+  });
+
+  it("says the engine came from local cache instead of showing a download", async () => {
+    const MB = 1024 * 1024;
+    const { convert } = gatedConvert((opts) =>
+      opts.onEngineProgress?.({ loaded: 37 * MB, total: 37 * MB, source: "cache" }),
+    );
+    render(<PdfToMobile convert={convert} />);
+    pickFile();
+    const btn = screen.getByTestId("convert-btn").querySelector("button") as HTMLButtonElement;
+    await waitFor(() => expect(btn.disabled).toBe(false));
+    fireEvent.click(btn);
+
+    await screen.findByText(zh.engineReadyFromCache);
+    expect(screen.queryByText(/MB/)).toBeNull();
+  });
+
+  it("cancels a running conversion and returns to idle", async () => {
+    const convert = vi.fn(
+      (_input, opts) =>
+        new Promise<Uint8Array>((_resolve, reject) => {
+          opts.signal.addEventListener("abort", () =>
+            reject(new DOMException("aborted", "AbortError")),
+          );
+        }),
+    );
+    render(<PdfToMobile convert={convert} />);
+    pickFile();
+    const btn = screen.getByTestId("convert-btn").querySelector("button") as HTMLButtonElement;
+    await waitFor(() => expect(btn.disabled).toBe(false));
+    fireEvent.click(btn);
+
+    await screen.findByTestId("cancel-btn");
+    fireEvent.click(screen.getByTestId("cancel-btn").querySelector("button")!);
+
+    expect(await screen.findByText(zh.cancelled)).toBeTruthy();
+    expect(screen.queryByTestId("status-line")).toBeNull();
+    expect(screen.queryByTestId("cancel-btn")).toBeNull();
   });
 });

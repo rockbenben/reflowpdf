@@ -3,12 +3,14 @@
  *
  * It imports the Emscripten glue (k2pdfopt.mjs) from the URL given in each job
  * (so the host app controls where the .wasm is served from), caches the module
- * factory, and streams progress parsed from k2pdfopt's stdout.
+ * factory, reports the engine bytes as they arrive (engineBytes) and streams
+ * per-page progress parsed from k2pdfopt's stdout.
  *
  * Build this as a module worker: new Worker(url, { type: "module" }).
  */
 /// <reference lib="webworker" />
 import { optionsToArgs } from "./flags.js";
+import { loadEngineBytes } from "./engineBytes.js";
 import type { MainToWorker, WorkerToMain } from "./protocol.js";
 // hybrid.js / segmentPdf.js / pdfCompose.js are imported lazily inside the hybrid
 // branch below so pdf.js + pdf-lib stay out of the worker payload for the other
@@ -53,8 +55,17 @@ self.addEventListener("message", async (ev: MessageEvent<MainToWorker>) => {
   const { id, input, opts, moduleUrl } = job;
   try {
     const createK2 = await loadFactory(moduleUrl);
+    // We fetch the wasm ourselves so its arrival can be reported and cached;
+    // passing it in as wasmBinary (with locateFile pinned to the same URL) keeps
+    // the glue from starting a second, unreported download of its own.
+    const wasmUrl = new URL("k2pdfopt.wasm", moduleUrl).href;
+    const wasmBinary = await loadEngineBytes(wasmUrl, {
+      onProgress: (loaded, total, source) => post({ type: "engine", id, loaded, total, source }),
+    });
     const Module = await createK2({
       noInitialRun: true,
+      wasmBinary,
+      locateFile: (path: string) => new URL(path, moduleUrl).href,
       print: (s: string) => {
         if (opts.layout === "hybrid") return; // convertHybrid drives band-level progress
         const m = /SOURCE PAGE (\d+) of (\d+)/.exec(s);

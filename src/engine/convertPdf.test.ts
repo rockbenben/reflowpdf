@@ -93,4 +93,55 @@ describe("convertPdf", () => {
     expect(Array.from(out)).toEqual(Array.from(PDF));
     expect(notices).toEqual(["noTextLayerFallback"]);
   });
+
+  it("forwards engine byte progress and keeps it off the wire", async () => {
+    const seen: Array<{ loaded: number; total: number; source: string }> = [];
+    const wire = vi.fn();
+    const createWorker = () =>
+      makeFakeWorker((job, emit) => {
+        wire(job.opts);
+        emit({ type: "engine", id: job.id, loaded: 128, total: 300, source: "network" });
+        emit({ type: "engine", id: job.id, loaded: 300, total: 300, source: "cache" });
+        emit({ type: "done", id: job.id, output: PDF.slice().buffer });
+      });
+
+    await convertPdf(
+      PDF,
+      { device: "phone", onEngineProgress: (p) => seen.push(p), signal: new AbortController().signal },
+      { createWorker },
+    );
+
+    expect(seen).toEqual([
+      { loaded: 128, total: 300, source: "network" },
+      { loaded: 300, total: 300, source: "cache" },
+    ]);
+    expect(wire).toHaveBeenCalledWith({ device: "phone" });
+  });
+
+  it("terminates the worker and rejects with AbortError when cancelled mid-flight", async () => {
+    const ac = new AbortController();
+    const terminated = vi.fn();
+    // The worker never answers, so only the abort can settle the promise.
+    const createWorker = (): WorkerLike => ({
+      ...makeFakeWorker(() => {}),
+      terminate: terminated,
+    });
+
+    const pending = convertPdf(PDF, { device: "phone", signal: ac.signal }, { createWorker });
+    ac.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    expect(terminated).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses to start a worker for an already-aborted signal", async () => {
+    const ac = new AbortController();
+    ac.abort();
+    const createWorker = vi.fn(() => makeFakeWorker(() => {}));
+
+    await expect(
+      convertPdf(PDF, { signal: ac.signal }, { createWorker }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(createWorker).not.toHaveBeenCalled();
+  });
 });

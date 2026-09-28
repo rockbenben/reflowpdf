@@ -47,7 +47,9 @@ ReflowPDF fixes "the PDF text is too small on my phone, I keep pinch-zooming" �
 ## Use it online
 
 Open the [demo](https://rockbenben.github.io/reflowpdf/) → drop a PDF → pick a mode →
-Convert → Download. The ~36MB engine (with CJK fonts) loads once; conversions are local and fast.
+Convert → Download. The first conversion downloads the ~36MB engine (CJK fonts included)
+with live byte progress and a cancel control; the engine then stays on your device
+(the browser's IndexedDB, revalidated by ETag), so later visits don't download it again.
 
 ## Build locally
 
@@ -88,6 +90,8 @@ const out = await convertPdf(
     trimMargins: true, // reflow-only
     onProgress: ({ page, total }) => console.log(`${page}/${total}`),
     onNotice: (code) => {}, // non-fatal notices, e.g. "noTextLayerFallback"
+    onEngineProgress: ({ loaded, total, source }) => {}, // engine bytes; total 0 = unknown length
+    signal: controller.signal, // cancel: kills the worker, rejects with an AbortError
   },
   {
     // worker creation is bundler-specific — caller must provide it (see sandbox/main.tsx)
@@ -101,7 +105,7 @@ const out = await convertPdf(
 
 - **You can't keep the layout *and* enlarge the text** (a full-width single column): that's a physical constraint, not a bug. "Smart hybrid" softens it by reflowing full-width blocks, but only for **digital PDFs that have a text layer**; scans without one fall back to "Magnify" automatically.
 - **"Smart hybrid" depends on pdf.js + pdf-lib**: only that mode **lazy-loads** them (dynamic `import()`), so the other three modes' worker stays small. It does not semantically restructure tables or formulas — that needs an AI layout model plus a backend, which conflicts with staying local and upload-free.
-- **The wasm is around 36 MB** (base-14 + CJK fonts + ICC): a heavy first load on mobile networks. Serving it from a CDN with gzip/brotli cuts the transfer a lot — the binary compresses well.
+- **The engine wasm is around 36 MB** (base-14 + CJK fonts + ICC): the first conversion has to download it, and that wait is unavoidable on a weak connection. Afterwards it lives on the device (IndexedDB, revalidated by ETag), so repeat visits don't download it. Static hosts generally offer only gzip, and this binary doesn't shrink much — the lever is downloading less, not compressing differently.
 - **Device pixel/DPI presets** still need calibrating against real-device output (`DEVICES` in `src/engine/flags.ts`).
 - **CI recompiles MuPDF on every deploy** (no cross-run cache, a few minutes). Committing a prebuilt artifact instead is an option.
 - zlib's `gz*` lseek/off_t signature warnings: harmless, and only affect reading gz-compressed input — the PDF path doesn't go through it.

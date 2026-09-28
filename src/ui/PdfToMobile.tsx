@@ -17,6 +17,7 @@ import { InboxOutlined, MobileOutlined, DownloadOutlined } from "@ant-design/ico
 import { saveAs } from "file-saver";
 import { convertPdf, type ConvertPdfConfig } from "../engine/convertPdf.js";
 import type { ConvertOptions } from "../engine/flags.js";
+import type { EngineSource } from "../engine/protocol.js";
 import { zh, type Messages } from "./messages.js";
 
 type ConvertFn = (input: Uint8Array, opts: ConvertOptions) => Promise<Uint8Array>;
@@ -42,12 +43,16 @@ const LAYOUT_DESC: Record<"magnify" | "hybrid" | "preserve" | "reflow", keyof Me
   reflow: "descReflow",
 };
 
+/** Bytes → "12.3 MB", for the engine download counter. */
+const fmtMB = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
+
 export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader = true }: PdfToMobileProps) {
   const t = useCallback((k: keyof Messages) => messages[k], [messages]);
 
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [pct, setPct] = useState(0);
+  const [engine, setEngine] = useState<{ loaded: number; total: number; source: EngineSource } | null>(null);
   const [errorKey, setErrorKey] = useState<
     "errEncrypted" | "errGeneric" | "errNoFile" | "errTooLarge" | null
   >(null);
@@ -66,11 +71,14 @@ export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader =
   );
 
   // Track the live object URL so we can revoke it on unmount (avoids a blob leak
-  // if the component unmounts while a result is shown).
+  // if the component unmounts while a result is shown). A conversion that is
+  // still running when the host unmounts gets aborted with it.
   const resultUrlRef = useRef<string | null>(null);
   resultUrlRef.current = result?.url ?? null;
+  const abortRef = useRef<AbortController | null>(null);
   useEffect(
     () => () => {
+      abortRef.current?.abort();
       if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
     },
     [],
@@ -81,9 +89,12 @@ export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader =
     setResult(null);
     setPhase("idle");
     setPct(0);
+    setEngine(null);
     setErrorKey(null);
     setNotice(null);
   };
+
+  const onCancel = useCallback(() => abortRef.current?.abort(), []);
 
   const onConvert = useCallback(async () => {
     if (!file) {
@@ -97,8 +108,11 @@ export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader =
       setPhase("error");
       return;
     }
+    const ac = new AbortController();
+    abortRef.current = ac;
     setPhase("busy");
     setPct(0);
+    setEngine(null);
     setErrorKey(null);
     setNotice(null);
     try {
@@ -109,6 +123,8 @@ export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader =
         columns,
         fontScale,
         trimMargins,
+        signal: ac.signal,
+        onEngineProgress: ({ loaded, total, source }) => setEngine({ loaded, total, source }),
         onProgress: ({ page, total }) =>
           setPct(total > 0 ? Math.min(99, Math.round((page / total) * 100)) : 0),
         onNotice: (code) => {
@@ -126,11 +142,32 @@ export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader =
       setResult({ url, size: out.byteLength, name });
       setPhase("done");
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        // The worker died with its half-fetched engine, so nothing partial stuck.
+        setPhase("idle");
+        setNotice(t("cancelled"));
+        return;
+      }
       const msg = e instanceof Error ? e.message.toLowerCase() : "";
       setErrorKey(/password|encrypt/.test(msg) ? "errEncrypted" : "errGeneric");
       setPhase("error");
+    } finally {
+      abortRef.current = null;
     }
   }, [file, layout, device, columns, fontScale, trimMargins, convertFn, t]);
+
+  // One status line while busy: engine bytes first (they dominate a first run),
+  // then page progress.
+  const statusLine =
+    pct > 0
+      ? `${t("converting")} ${pct}%`
+      : !engine
+        ? `${t("converting")}…`
+        : engine.source === "cache"
+          ? t("engineReadyFromCache")
+          : engine.total > engine.loaded
+            ? `${t("loadingEngine")} ${fmtMB(engine.loaded)} / ${fmtMB(engine.total)}`
+            : `${t("loadingEngine")} ${fmtMB(engine.loaded)}`;
 
   return (
     <Card variant="borderless" className="rp-converter" style={{ margin: "0 auto" }}>
@@ -250,13 +287,27 @@ export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader =
           </Button>
         </div>
 
-        {phase === "busy" && <Progress percent={pct} status="active" />}
+        {phase === "busy" && (
+          <Space orientation="vertical" size="small" style={{ width: "100%" }}>
+            <Typography.Text type="secondary" data-testid="status-line">
+              {statusLine}
+            </Typography.Text>
+            {/* The bar counts pages, so it stays hidden until the first page
+                lands — a 0% bar next to a download counter reads as stuck. */}
+            {pct > 0 && <Progress percent={pct} status="active" />}
+            <div data-testid="cancel-btn">
+              <Button size="small" onClick={onCancel}>
+                {t("cancel")}
+              </Button>
+            </div>
+          </Space>
+        )}
 
         {phase === "error" && errorKey && (
           <Alert type="error" showIcon title={t(errorKey)} />
         )}
 
-        {phase === "done" && notice && <Alert type="info" showIcon title={notice} />}
+        {notice && phase !== "busy" && <Alert type="info" showIcon title={notice} />}
 
         {phase === "done" && result && (
           <Card size="small" title={t("resultTitle")}>

@@ -46,7 +46,8 @@ ReflowPDF 解决的是「PDF 在手机上字太小、要不停缩放」的问题
 ## 在线使用
 
 打开 [Demo](https://rockbenben.github.io/reflowpdf/) → 拖入 PDF → 选模式 → 转换 → 下载。
-首次会加载约 36MB 的引擎(含 CJK 字体，中文可显示)，之后转换在本地秒级完成。
+首次转换要下载约 36MB 的引擎(含 CJK 字体，中文可显示)，下载过程显示实时字节进度、可中途取消；
+引擎随后留在本机(浏览器 IndexedDB，按 ETag 校验更新)，再次打开不必重下。
 
 ## 本地开发与构建
 
@@ -83,7 +84,7 @@ npm run build:pages && npx vite preview
 引擎与 UI 解耦，可单独复用。
 
 ```text
-src/engine/   引擎:flags(选项→CLI 参数)· convertPdf(主线程 API)· worker/protocol(Worker)· runNode(Node 测试)
+src/engine/   引擎:flags(选项→CLI 参数)· convertPdf(主线程 API)· worker/protocol(Worker)· engineBytes(引擎下载/本机缓存)· runNode(Node 测试)
               智能混合:segment(纯切分)· segmentPdf(pdf.js 抽坐标)· hybrid(编排)· pdfCompose(pdf-lib 合并)
 src/ui/       antd6 组件(主题 token 深度定制)+ 多语言文案
 sandbox/      浏览器 demo(Vite + GitHub Pages)
@@ -104,6 +105,9 @@ const out = await convertPdf(
     layout: "magnify", // "magnify"(默认) | "hybrid" | "preserve" | "reflow"
     device: "phone", // "phone" | "tablet" | { width, height, dpi }
     onNotice: (code) => {}, // 非致命提示,如 "noTextLayerFallback"
+    // 引擎字节进度:total 为 0 表示长度未知,source 区分新下载与本机缓存
+    onEngineProgress: ({ loaded, total, source }) => {},
+    signal: controller.signal, // 取消:终止 worker,promise 以 AbortError 拒绝
     // 以下仅 reflow 模式生效:
     columns: "auto", // 1 | 2 | "auto"
     fontScale: 1.0, // 字号倍数
@@ -122,8 +126,9 @@ const out = await convertPdf(
 
 - **保留版面 + 放大不可兼得**(整页满宽单栏):物理限制，非 bug。「智能混合」通过对全宽区块局部重排缓解了这点，但仅限**有文字层的电子版 PDF**；扫描件无文字层时自动退回「放大阅读」。
 - **「智能混合」依赖 pdf.js + pdf-lib**:仅该模式**懒加载**(动态 `import()`)，不影响其余三模式的 worker 体积；不做表格/公式的语义重构(需 AI 版面模型 + 后端，与本地不上传冲突)。
-- **wasm 体积约 36MB**(含 base-14 + CJK 字体 + ICC):首屏在移动网络下较重；
-  放到支持 gzip/brotli 的 CDN 可大幅减小传输(该二进制压缩率很高)。
+- **引擎 wasm 体积约 36MB**(含 base-14 + CJK 字体 + ICC):首次转换需要下载它，弱网下这段等待无法避免；
+  之后引擎存在本机(IndexedDB，按 ETag 校验更新)，重复访问不再下载。静态主机一般只做 gzip，而这个二进制压缩收效有限，
+  所以省流量的出路是少下载，不是换压缩算法。
 - **设备预设像素/DPI** 需对真机输出进一步校准(`src/engine/flags.ts` 的 `DEVICES`)。
 - **CI 每次部署重编译 MuPDF**(无跨次缓存，约数分钟)；可按需改为提交预编译产物。
 - zlib `gz*` 的 lseek/off_t 签名告警：非致命，仅影响读 gz 压缩输入(PDF 路径不走)。

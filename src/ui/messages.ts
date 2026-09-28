@@ -7,6 +7,10 @@ export type MsgKey =
   | "dragHintSub"
   | "convert"
   | "converting"
+  | "loadingEngine"
+  | "engineReadyFromCache"
+  | "cancel"
+  | "cancelled"
   | "layout"
   | "layoutMagnify"
   | "layoutPreserve"
@@ -43,9 +47,13 @@ export const zh: Messages = {
   subtitle: "把电脑版式的 PDF 放大 / 重排成适合手机竖屏阅读的版式",
   privacy: "文件不上传，全部在你的浏览器本地处理。",
   dragHint: "点击或拖拽 PDF 到此处",
-  dragHintSub: "论文、报告等文字类 PDF 都适用；首次加载引擎约需几秒",
+  dragHintSub: "论文、报告等文字类 PDF 都适用；引擎只需下载一次，之后留在本机",
   convert: "转换为手机版",
   converting: "转换中",
+  loadingEngine: "正在下载引擎（只有第一次需要）",
+  engineReadyFromCache: "引擎已就绪（本机缓存）",
+  cancel: "取消",
+  cancelled: "已取消，没有生成文件。",
   layout: "排版方式",
   layoutMagnify: "放大阅读",
   layoutPreserve: "保留原版式",
@@ -87,9 +95,14 @@ export const en: Messages = {
   subtitle: "Enlarge / reflow a desktop-layout PDF into a phone-friendly portrait layout",
   privacy: "Files never leave your device — everything runs locally in your browser.",
   dragHint: "Click or drag a PDF here",
-  dragHintSub: "Works for papers, reports and other text PDFs; the engine takes a few seconds to load the first time",
+  dragHintSub:
+    "Works for papers, reports and other text PDFs; the engine downloads once and then stays on this device",
   convert: "Convert for mobile",
   converting: "Converting",
+  loadingEngine: "Downloading the engine (needed only on the first run)",
+  engineReadyFromCache: "Engine ready from this device's cache",
+  cancel: "Cancel",
+  cancelled: "Cancelled — no file was produced.",
   layout: "Layout",
   layoutMagnify: "Magnify",
   layoutPreserve: "Preserve layout",

@@ -6,6 +6,7 @@
  */
 
 import type { Band } from "./segment.js";
+import type { EngineSource } from "./protocol.js";
 
 export interface DeviceProfile {
   /** device screen width in pixels (k2pdfopt -w) */
@@ -40,8 +41,15 @@ export interface ConvertOptions {
   columns?: 1 | 2 | "auto";
   /** progress callback as pages are processed. */
   onProgress?: (p: { page: number; total: number }) => void;
+  /**
+   * Engine arrival progress, reported before the first page. Separate from
+   * onProgress because on a first visit the download dwarfs the conversion.
+   */
+  onEngineProgress?: (p: { loaded: number; total: number; source: EngineSource }) => void;
   /** notice callback for non-fatal events (e.g. "noTextLayerFallback"). */
   onNotice?: (code: string) => void;
+  /** aborts the conversion: the worker is killed, and the promise rejects with an AbortError. */
+  signal?: AbortSignal;
 }
 
 /**

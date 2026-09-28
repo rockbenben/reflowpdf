@@ -42,7 +42,8 @@ export async function convertPdf(
   opts: ConvertOptions = {},
   config: ConvertPdfConfig = {},
 ): Promise<Uint8Array> {
-  const { onProgress, onNotice, ...wire } = opts;
+  const { onProgress, onNotice, onEngineProgress, signal, ...wire } = opts;
+  if (signal?.aborted) throw new DOMException("Conversion aborted", "AbortError");
   const moduleUrl = config.moduleUrl ?? "/wasm/k2pdfopt.mjs";
   const worker = (config.createWorker ?? defaultWorker)();
   const id = ++nextId;
@@ -59,19 +60,31 @@ export async function convertPdf(
         onNotice?.(msg.code);
         return;
       }
+      if (msg.type === "engine") {
+        onEngineProgress?.({ loaded: msg.loaded, total: msg.total, source: msg.source });
+        return;
+      }
       cleanup();
       if (msg.type === "done") resolve(new Uint8Array(msg.output));
       else reject(new Error(msg.message));
+    };
+    // Killing the worker is also how the engine download stops: an aborted fetch
+    // dies with the thread, so nothing half-downloaded is cached.
+    const onAbort = () => {
+      cleanup();
+      reject(new DOMException("Conversion aborted", "AbortError"));
     };
     let done = false;
     const cleanup = () => {
       if (done) return;
       done = true;
+      signal?.removeEventListener("abort", onAbort);
       worker.removeEventListener?.("message", onMessage);
-      worker.terminate?.(); // free the ~36MB wasm heap
+      worker.terminate?.(); // free the wasm heap
     };
 
     worker.addEventListener("message", onMessage);
+    signal?.addEventListener("abort", onAbort, { once: true });
     try {
       const buf = input.slice().buffer;
       const message: MainToWorker = { type: "convert", id, input: buf, opts: wire, moduleUrl };
