@@ -148,12 +148,14 @@ function App() {
           </div>
 
           <div className="rp-hcol bench rp-bench">
-            <div className="rp-specimen">{h.specimen}</div>
+            <div className="rp-specimen" aria-hidden="true">{h.specimen}</div>
             <div className="rp-loupe">
               <div className="z">
                 {h.loupe[0]}
-                <b>{h.loupe[1]}</b>
-                {h.loupe[2]}
+                <span className="rp-loupe-keep">
+                  <b>{h.loupe[1]}</b>
+                  {h.loupe[2]}
+                </span>
               </div>
             </div>
             <div className="rp-formula">
@@ -166,6 +168,7 @@ function App() {
         </section>
 
         <section className="rp-panelwrap">
+          <span className="rp-paneltag">{messages.panelTag}</span>
           <PdfToMobile engineConfig={engineConfig} messages={messages} showHeader={false} />
         </section>
 

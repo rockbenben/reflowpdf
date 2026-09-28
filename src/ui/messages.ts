@@ -6,6 +6,8 @@ export type MsgKey =
   | "dragHint"
   | "dragHintSub"
   | "convert"
+  | "panelTag"
+  | "previewTitle"
   | "converting"
   | "loadingEngine"
   | "engineReadyFromCache"
@@ -49,6 +51,8 @@ export const zh: Messages = {
   dragHint: "点击或拖拽 PDF 到此处",
   dragHintSub: "论文、报告等文字类 PDF 都适用；引擎只需下载一次，之后留在本机",
   convert: "转换为手机版",
+  panelTag: "转换",
+  previewTitle: "手机版预览",
   converting: "转换中",
   loadingEngine: "正在下载引擎（只有第一次需要）",
   engineReadyFromCache: "引擎已就绪（本机缓存）",
@@ -98,6 +102,8 @@ export const en: Messages = {
   dragHintSub:
     "Works for papers, reports and other text PDFs; the engine downloads once and then stays on this device",
   convert: "Convert for mobile",
+  panelTag: "CONVERT",
+  previewTitle: "Mobile preview",
   converting: "Converting",
   loadingEngine: "Downloading the engine (needed only on the first run)",
   engineReadyFromCache: "Engine ready from this device's cache",

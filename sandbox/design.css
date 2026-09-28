@@ -7,15 +7,20 @@
   --panel: #ffffff;
   --graphite: #141a1e;
   --graphite-2: #4a555c;
-  --muted: #7c868c;
+  --muted: #646e75;
   --line: #d3dade;
   --line-2: #e5eaed;
   --lens: #1466b3;
   --lens-soft: #e3eef8;
-  --reticle: #d4483f;
+  --reticle: #c43a31;
+  --specimen: #aeb7bd;
   --disp: "Space Grotesk", "Inter", system-ui, sans-serif;
   --body: "Inter", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+  /* The three shadows the design allows; see DESIGN.md → Elevation & Depth. */
+  --ring: 0 0 0 6px rgba(20, 26, 30, 0.05);
+  --lift-md: 0 14px 26px -18px rgba(20, 102, 179, 0.5);
+  --lift-lg: 0 22px 40px -18px rgba(20, 26, 30, 0.5);
 }
 
 html { -webkit-font-smoothing: antialiased; }
@@ -40,8 +45,10 @@ body {
 .rp-lensmark { width: 26px; height: 26px; border: 2px solid var(--graphite); border-radius: 50%; position: relative; flex: none; }
 .rp-lensmark::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--lens); opacity: 0.16; }
 .rp-lensmark::after { content: ""; position: absolute; right: -5px; bottom: -5px; width: 10px; height: 2.5px; background: var(--graphite); transform: rotate(45deg); transform-origin: left; border-radius: 2px; }
-.rp-top nav { display: flex; align-items: center; gap: 16px; font-family: var(--mono); font-size: 12px; color: var(--graphite-2); }
-.rp-top nav .k { letter-spacing: 0.08em; text-transform: uppercase; }
+.rp-top nav { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 16px; font-family: var(--mono); font-size: 12px; color: var(--graphite-2); }
+/* Micro-labels must not break mid-word: at 390px these collapsed to one CJK
+   glyph per line. */
+.rp-top nav .k { letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
 .rp-top nav .k.b { color: var(--lens); }
 
 /* language toggle (antd Segmented, size small) sits here */
@@ -75,17 +82,22 @@ body {
   background: radial-gradient(120% 90% at 72% 18%, var(--lens-soft), transparent 60%), var(--panel);
   position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 340px;
 }
+/* Decorative texture only — 2.04:1, so it must stay aria-hidden and must never
+   carry meaning (see DESIGN.md → Colors). */
 .rp-specimen {
-  font-size: 8.5px; line-height: 1.5; color: #aeb7bd; column-count: 2; column-gap: 14px;
+  font-size: 8.5px; line-height: 1.5; color: var(--specimen); column-count: 2; column-gap: 14px;
   padding: 0 2px; user-select: none; letter-spacing: 0.2px;
 }
 .rp-loupe {
   position: absolute; top: clamp(70px, 14%, 110px); left: clamp(80px, 34%, 170px);
   width: 132px; height: 132px; border-radius: 50%; border: 2px solid var(--graphite);
   background: var(--panel); overflow: hidden; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 0 0 6px rgba(20, 26, 30, 0.05), 0 22px 40px -18px rgba(20, 26, 30, 0.5);
+  box-shadow: var(--ring), var(--lift-lg);
 }
 .rp-loupe .z { font-family: var(--disp); font-weight: 500; font-size: 15px; text-align: center; padding: 0 12px; line-height: 1.25; color: var(--graphite); }
+/* CJK does not break on spaces, so "两倍字号" used to orphan its last glyph in a
+   132px circle; keep the emphasised term and what follows it on one line. */
+.rp-loupe-keep { display: inline-block; white-space: nowrap; }
 .rp-loupe .z b { color: var(--lens); font-weight: 700; }
 .rp-loupe::after { content: ""; position: absolute; right: -15px; bottom: -15px; width: 34px; height: 6px; background: var(--graphite); transform: rotate(45deg); border-radius: 3px; }
 .rp-formula {
@@ -97,8 +109,11 @@ body {
 
 /* ---- converter panel ------------------------------------------------- */
 .rp-panelwrap { position: relative; margin-top: 22px; }
-.rp-panelwrap::before {
-  content: "CONVERT"; position: absolute; top: -8px; left: 24px; z-index: 1; background: var(--bg);
+/* The label punched into the panel border. It used to be CSS `content: "CONVERT"`,
+   which stayed English in the Chinese UI — the text now comes from the message
+   dictionary. */
+.rp-paneltag {
+  position: absolute; top: -8px; left: 24px; z-index: 1; background: var(--bg);
   padding: 0 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; color: var(--muted);
 }
 .rp-panelwrap { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: clamp(18px, 3vw, 30px) clamp(16px, 3vw, 32px) clamp(20px, 3vw, 32px); }
@@ -121,7 +136,6 @@ body {
 .rp-converter .ant-typography strong { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
 .rp-converter .ant-segmented-item-label { font-family: var(--disp); font-weight: 500; padding: 0 14px; }
 .rp-desc { font-size: 13.5px !important; color: var(--graphite-2) !important; line-height: 1.55; }
-.rp-desc-b { color: var(--graphite); font-weight: 600; }
 .rp-note {
   font-family: var(--mono) !important; font-size: 11.5px !important; font-style: normal !important;
   color: var(--muted) !important; border-left: 2px solid var(--line); padding-left: 10px;
@@ -149,7 +163,11 @@ body {
 }
 .rp-tool:hover {
   border-color: var(--lens); transform: translateY(-2px);
-  box-shadow: 0 14px 26px -18px rgba(20, 102, 179, 0.5);
+  box-shadow: var(--lift-md);
+}
+/* Bespoke anchor: antd's focus ring does not reach it, so give it one. */
+.rp-tool:focus-visible {
+  outline: 2px solid var(--lens); outline-offset: 3px; border-radius: 10px;
 }
 .rp-tool-name {
   font-family: var(--disp); font-weight: 600; font-size: 15px; color: var(--graphite);
@@ -177,4 +195,19 @@ body {
   .rp-tools-grid { grid-template-columns: 1fr 1fr; }
 }
 
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+/* Phone is this product's primary context: the two decorative section names step
+   out and the privacy claim plus the language toggle stay. */
+@media (max-width: 640px) {
+  .rp-top { padding: 14px 0 18px; }
+  .rp-top nav .k:not(.b) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  /* The tool-card lift is a transform, not just a transition. */
+  .rp-tool:hover { transform: none; }
+}

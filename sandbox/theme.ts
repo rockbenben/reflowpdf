@@ -12,18 +12,19 @@ export const opticalTheme: ThemeConfig = {
   token: {
     colorPrimary: "#1466B3", // lens blue
     colorInfo: "#1466B3",
-    colorError: "#D4483F", // the single reticle red
+    colorError: "#C43A31", // the single reticle red
     colorLink: "#1466B3",
     colorTextBase: "#141A1E", // graphite
     colorText: "#141A1E",
-    colorTextSecondary: "#5B666D",
-    colorTextTertiary: "#7C868C",
+    colorTextSecondary: "#4A555C",
+    colorTextTertiary: "#646E75",
     colorBorder: "#D3DADE",
     colorBorderSecondary: "#E5EAED",
     colorBgContainer: "#FFFFFF",
     colorBgElevated: "#FFFFFF",
     colorBgLayout: "#EEF1F3",
     borderRadius: 10,
+    borderRadiusSM: 8,
     borderRadiusLG: 12,
     fontFamily:
       "'Inter', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif",

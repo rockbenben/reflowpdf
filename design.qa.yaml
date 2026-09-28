@@ -1,0 +1,101 @@
+project:
+  name: reflowpdf
+  # `npm run build:pages && npx vite preview` serves the demo; `npm run dev` is
+  # not usable (the engine glue is copied in by the build — see README).
+  baseUrl: http://localhost:4173
+  outputDir: .design-qa
+  appCommand: npm run build:pages && npx vite preview --port 4173 --strictPort
+  appReadyUrl: http://localhost:4173/
+
+design:
+  designMd: DESIGN.md
+  screenSpec: SCREEN_SPEC.md
+
+screens:
+  - name: home-desktop
+    mode: conformance
+    expected:
+      type: image
+      path: .design-qa/expected/home-desktop.png
+    app:
+      url: /
+      viewport:
+        width: 1440
+        height: 900
+      deviceScaleFactor: 1
+      fullPage: true
+      waitUntil: networkidle
+      waitForSelector: .rp-converter
+
+  - name: home-mobile
+    mode: conformance
+    expected:
+      type: image
+      path: .design-qa/expected/home-mobile.png
+    app:
+      url: /
+      viewport:
+        width: 390
+        height: 844
+      deviceScaleFactor: 2
+      fullPage: true
+      waitUntil: networkidle
+      waitForSelector: .rp-converter
+
+uiAlignment:
+  # No Figma file or approved baseline exists for this project yet, so visual
+  # comparison is left off rather than widened until a design owner supplies one.
+  # Rendered evidence is captured through the Chrome DevTools MCP instead.
+  runVisualComparison: false
+  runComponentAudit: true
+  runDebtAudit: true
+  runA11yAudit: false
+  measurementTolerancePx: 1
+
+code:
+  include:
+    # The demo shell and its hand-written design system live in sandbox/, the
+    # reusable component in src/ui/. Test files are excluded: their fixtures are
+    # not design surface.
+    - sandbox/**/*.{ts,tsx,css,html}
+    - src/ui/**/*.{ts,tsx,css}
+    - src/engine/**/*.{ts,tsx}
+  exclude:
+    - node_modules/**
+    - dist/**
+    - sandbox-dist/**
+    - vendor/**
+    - .design-qa/**
+    - "**/*.test.{ts,tsx}"
+
+components:
+  # antd is the intended component library for this project; feature code should
+  # not hand-roll controls that antd already variants.
+  libraryImportPatterns:
+    - antd
+    - "@ant-design/icons"
+  rawElementPolicy:
+    button: prefer-design-system
+    input: prefer-design-system
+    select: prefer-design-system
+    textarea: prefer-design-system
+    dialog: prefer-design-system
+  allowedRawElementFiles:
+    # sandbox/main.tsx owns the page shell (hero, footer, cross-links), where
+    # plain anchors and headings are the right primitive.
+    - sandbox/main.tsx
+
+a11y:
+  disabledRules: []
+  includeSelectors: []
+  excludeSelectors:
+    - "[data-a11y-ignore]"
+
+debt:
+  maxHardCodedColors: 0
+  maxArbitraryTailwindValues: 0
+  maxInlineStyles: 0
+  allowedColorValues:
+    - "#000"
+    - "#fff"
+    - transparent

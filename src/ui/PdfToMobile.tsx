@@ -10,6 +10,7 @@ import {
   Slider,
   Space,
   Switch,
+  theme,
   Typography,
   Upload,
 } from "antd";
@@ -48,6 +49,9 @@ const fmtMB = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 
 export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader = true }: PdfToMobileProps) {
   const t = useCallback((k: keyof Messages) => messages[k], [messages]);
+  // The preview frame is the one place the converter paints its own surface, so it
+  // takes its hairline and radius from the theme rather than raw values.
+  const { token } = theme.useToken();
 
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
@@ -313,9 +317,15 @@ export function PdfToMobile({ messages = zh, convert, engineConfig, showHeader =
           <Card size="small" title={t("resultTitle")}>
             <Space orientation="vertical" style={{ width: "100%" }} size="middle">
               <iframe
-                title="preview"
+                title={t("previewTitle")}
                 src={result.url}
-                style={{ width: "100%", height: 420, border: "1px solid #eee", borderRadius: 8 }}
+                className="rp-preview"
+                style={{
+                  width: "100%",
+                  height: 420,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  borderRadius: token.borderRadiusSM,
+                }}
               />
               <div data-testid="download-btn">
                 <Button
