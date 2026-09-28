@@ -70,6 +70,10 @@ Push to GitHub, then **Settings → Pages → Source: "GitHub Actions"**. The bu
 (relative base, subpath-safe) and publishes it. The footer GitHub link is injected from
 `GITHUB_REPOSITORY` in CI. If `dist/k2pdfopt.wasm` is committed, CI skips the (slow) wasm rebuild.
 
+`.github/workflows/test.yml` runs `npm run typecheck` + `npm test` on every push and PR.
+It never touches the wasm toolchain (the unit tests inject a fake worker), so it stays
+independent of the deploy pipeline.
+
 ## How it works
 
 `PDF bytes → k2pdfopt (WASM) in a Web Worker → reflowed/enlarged PDF bytes`, off the main thread.

@@ -78,6 +78,9 @@ npm run build:pages && npx vite preview
 拉源码 → Docker+Emscripten 编译 wasm → `vite build`(相对 base，适配 `/<repo>/` 子路径)→ 发布。
 页脚的 GitHub 链接由 CI 的 `GITHUB_REPOSITORY` 自动注入，无需手填。
 
+另有 `.github/workflows/test.yml`：每次推送 / PR 跑 `npm run typecheck` + `npm test`，
+不碰 wasm 工具链(单元测试注入假 worker)，所以和部署流水线各自独立。
+
 ## 工作原理
 
 `PDF 字节 → Web Worker 里的 k2pdfopt(WASM)→ 重排/放大后的 PDF 字节`，全程主线程不阻塞。
